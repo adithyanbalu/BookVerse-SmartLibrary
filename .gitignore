@@ -13,3 +13,7 @@ target/
 # OS junk
 .DS_Store
 Thumbs.db
+
+# Generated local Java classpath
+/backend/classpath.txt
+

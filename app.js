@@ -8,7 +8,30 @@ let loans = [];
 let reservations = [];
 let fines = [];
 
+function getMyLoans() {
+  return loans.filter(l =>
+    Number(l.student_id) === Number(currentStudentId)
+  );
+}
+
+function getMyReservations() {
+  return reservations.filter(r =>
+    Number(r.student_id) === Number(currentStudentId)
+  );
+}
+
+function getMyFines() {
+  return fines.filter(f => {
+    const student = students.find(s =>
+      s.name === f.student
+    );
+
+    return student &&
+      Number(student.id) === Number(currentStudentId);
+  });
+}
 let currentRole = 'admin';
+let currentStudentId = null;
 let bookCategoryFilter = 'All';
 let editingBookId = null;
 
@@ -20,33 +43,87 @@ function setRole(role) {
   document.getElementById('login-id').placeholder = role === 'admin' ? 'e.g. LIB-ADM-002' : 'e.g. 25014';
 }
 
-function doLogin(e) {
+
+async function doLogin(e) {
   e.preventDefault();
 
-  document.getElementById('view-login').classList.add('hidden');
-  document.getElementById('app').classList.remove('hidden');
+  const loginId = document.getElementById('login-id').value.trim();
+  const password = document.getElementById('login-pass').value;
 
-  const idVal = document.getElementById('login-id').value ||
-    (currentRole === 'admin' ? 'Admin User' : 'Adithyan B');
+  if (!loginId || !password) {
+    alert('Please enter your ID and password.');
+    return false;
+  }
 
-  document.getElementById('nav-admin').classList.toggle('hidden', currentRole !== 'admin');
-  document.getElementById('nav-student').classList.toggle('hidden', currentRole !== 'student');
+  const endpoint = currentRole === 'admin'
+    ? '/api/auth/admin-login'
+    : '/api/auth/student-login';
 
-  document.getElementById('user-name').textContent = currentRole === 'admin' ? 'Library Admin' : idVal;
-  document.getElementById('user-role').textContent = currentRole === 'admin' ? 'administrator' : 'student';
-  document.getElementById('user-avatar').textContent =
-    (currentRole === 'admin' ? 'LA' : idVal.slice(0, 2)).toUpperCase();
+  const requestBody = currentRole === 'admin'
+    ? { admin_id: loginId, password: password }
+    : { student_id: loginId, password: password };
 
-  goView(currentRole === 'admin' ? 'dashboard' : 's-dashboard');
-  loadAllFromDatabase();
+  try {
+    const response = await fetch(
+      `http://localhost:8080${endpoint}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody)
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      alert(result.error || 'Login failed. Check your ID and password.');
+      return false;
+    }
+    // Store the ID of the student who successfully logged in.
+currentStudentId = currentRole === 'student'
+  ? Number(result.student_id ?? result.studentId ?? loginId)
+  : null;
+
+    // Open the app only after the backend approves login.
+    document.getElementById('view-login').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+
+    const displayName = currentRole === 'admin'
+      ? 'Library Admin'
+      : result.name;
+
+    document.getElementById('nav-admin').classList.toggle(
+      'hidden', currentRole !== 'admin'
+    );
+    document.getElementById('nav-student').classList.toggle(
+      'hidden', currentRole !== 'student'
+    );
+
+    document.getElementById('user-name').textContent = displayName;
+    document.getElementById('user-role').textContent = currentRole;
+    document.getElementById('user-avatar').textContent =
+      displayName.slice(0, 2).toUpperCase();
+
+    goView(currentRole === 'admin' ? 'dashboard' : 's-dashboard');
+
+    await loadAllFromDatabase();
+
+  } catch (error) {
+    console.error('Login error:', error);
+    alert('Cannot connect to the backend. Make sure Spring Boot is running on port 8080.');
+  }
 
   return false;
 }
 
 function doLogout() {
+  currentStudentId = null;
   document.getElementById('app').classList.add('hidden');
   document.getElementById('view-login').classList.remove('hidden');
   document.getElementById('login-form').reset();
+  
 }
 
 function goView(name) {
@@ -133,7 +210,55 @@ async function loadAllFromDatabase() {
   renderAll();
 }
 
+function renderStudentDashboardStats() {
+  if (!currentStudentId) return;
+
+  const myLoans = getMyLoans();
+  const myReservations = getMyReservations();
+  const myFines = getMyFines();
+
+  // Books currently on loan: exclude returned books.
+  const activeLoans = myLoans.filter(
+    loan => loan.status === 'issued' || loan.status === 'overdue'
+  );
+
+  // Count pending or approved reservations.
+  const activeReservations = myReservations.filter(
+    reservation =>
+      reservation.status === 'pending' ||
+      reservation.status === 'approved'
+  );
+
+  // Sum unpaid fines.
+  const pendingFines = myFines
+    .filter(fine => fine.status === 'pending' || fine.status === 'unpaid')
+    .reduce((total, fine) => total + Number(fine.amount || 0), 0);
+
+  // Count books returned during the current calendar year.
+  const currentYear = new Date().getFullYear();
+  const booksRead = myLoans.filter(loan => {
+    if (loan.status !== 'returned' || !loan.return_date) return false;
+
+    const returnDate = new Date(loan.return_date);
+    return !Number.isNaN(returnDate.getTime()) &&
+      returnDate.getFullYear() === currentYear;
+  }).length;
+
+  document.getElementById('student-stat-loans').textContent =
+    activeLoans.length;
+
+  document.getElementById('student-stat-reservations').textContent =
+    activeReservations.length;
+
+  document.getElementById('student-stat-fines').textContent =
+    '₹' + pendingFines.toFixed(2);
+
+  document.getElementById('student-stat-books-read').textContent =
+    booksRead;
+}
 function renderAll() {
+  renderStudentDashboardStats(); // Add this line
+
   renderAdminCatalog();
   renderStudentTable();
   renderIssueReturnForm();
@@ -518,7 +643,12 @@ async function issueOrReserve(bookId) {
   const b = books.find(x => Number(x.id) === Number(bookId));
   if (!b) return;
 
-  const studentId = 25014; // Default demo student Adithyan B
+  const studentId = currentStudentId;
+
+if (!studentId) {
+  toast('Please log in as a student first.', 'crimson');
+  return;
+}
 
   if (b.available > 0) {
     try {
@@ -553,29 +683,55 @@ async function issueOrReserve(bookId) {
   }
 }
 
+
 function renderStudentLoans() {
   const elMini = document.getElementById('student-loans-mini');
   const elFull = document.getElementById('student-loans-full');
 
+  // Only get loans belonging to the logged-in student.
+  const myLoans = getMyLoans();
+
   if (elMini) {
-    elMini.innerHTML = loans.slice(0, 3).map(l => `
+    const recentLoans = myLoans.slice(0, 3);
+
+    elMini.innerHTML = recentLoans.map(l => `
       <tr>
         <td><strong>${l.book}</strong></td>
-        <td class="mono">${l.due}</td>
-        <td>${l.status === 'overdue' ? '<span class="pill pill-crimson">Overdue</span>' : '<span class="pill pill-sage">On time</span>'}</td>
-        <td><button class="btn btn-sm btn-brass" onclick="returnBook(${l.borrow_id})">Return</button></td>
+        <td class="mono">${l.due || '—'}</td>
+        <td>
+          ${l.status === 'overdue'
+            ? '<span class="pill pill-crimson">Overdue</span>'
+            : l.status === 'returned'
+              ? '<span class="pill pill-sage">Returned</span>'
+              : '<span class="pill pill-sage">On time</span>'}
+        </td>
+        <td>
+          ${l.status !== 'returned'
+            ? `<button class="btn btn-sm btn-brass" onclick="returnBook(${l.borrow_id})">Return</button>`
+            : '—'}
+        </td>
       </tr>
     `).join('') || emptyRow(4);
   }
 
   if (elFull) {
-    elFull.innerHTML = loans.map(l => `
+    elFull.innerHTML = myLoans.map(l => `
       <tr>
         <td><strong>${l.book}</strong></td>
-        <td class="mono">${l.issued}</td>
-        <td class="mono">${l.due}</td>
-        <td>${l.status === 'overdue' ? '<span class="pill pill-crimson">Overdue</span>' : '<span class="pill pill-sage">On time</span>'}</td>
-        <td>${l.status !== 'returned' ? `<button class="btn btn-sm btn-brass" onclick="returnBook(${l.borrow_id})">Return</button>` : '<span class="mono" style="opacity:.4">Returned</span>'}</td>
+        <td class="mono">${l.issued || '—'}</td>
+        <td class="mono">${l.due || '—'}</td>
+        <td>
+          ${l.status === 'overdue'
+            ? '<span class="pill pill-crimson">Overdue</span>'
+            : l.status === 'returned'
+              ? '<span class="pill pill-sage">Returned</span>'
+              : '<span class="pill pill-sage">On time</span>'}
+        </td>
+        <td>
+          ${l.status !== 'returned'
+            ? `<button class="btn btn-sm btn-brass" onclick="returnBook(${l.borrow_id})">Return</button>`
+            : '<span class="mono">Returned</span>'}
+        </td>
       </tr>
     `).join('') || emptyRow(5);
   }
@@ -585,7 +741,9 @@ function renderStudentReservations() {
   const el = document.getElementById('student-reservations-table');
   if (!el) return;
 
-  el.innerHTML = reservations.map(r => `
+  const myReservations = getMyReservations();
+
+  el.innerHTML = myReservations.map(r => `
     <tr>
       <td><strong>${r.book}</strong></td>
       <td class="mono">${r.requested}</td>
@@ -595,16 +753,22 @@ function renderStudentReservations() {
   `).join('') || emptyRow(4);
 }
 
+
 function renderStudentFines() {
   const el = document.getElementById('student-fines-table');
   if (!el) return;
 
-  el.innerHTML = fines.map(f => `
+  const myFines = getMyFines();
+
+  el.innerHTML = myFines.map(f => `
     <tr>
       <td>${f.book}</td>
       <td>${f.days}</td>
       <td class="mono">₹${f.amount}</td>
-      <td>${f.status === 'paid' ? '<span class="pill pill-sage">Paid</span>' : '<span class="pill pill-crimson">Unpaid</span>'}</td>
+      <td>${f.status === 'paid'
+        ? '<span class="pill pill-sage">Paid</span>'
+        : '<span class="pill pill-crimson">Unpaid</span>'}
+      </td>
     </tr>
   `).join('') || emptyRow(4);
 }
@@ -838,15 +1002,34 @@ function closeStudentModal() {
   document.getElementById('student-modal-overlay').classList.remove('open');
 }
 
+
 async function saveStudent() {
   const idVal = document.getElementById('sf-id').value.trim();
   const name = document.getElementById('sf-name').value.trim();
   const email = document.getElementById('sf-email').value.trim();
   const phone = document.getElementById('sf-phone').value.trim();
   const dept = document.getElementById('sf-dept').value.trim();
+  const password = document.getElementById('sf-password').value;
+  const confirmPassword =
+    document.getElementById('sf-confirm-password').value;
 
   if (!name || !email) {
-    toast('Student Name and Email are required', 'crimson');
+    toast('Student Name and Email are required.', 'crimson');
+    return;
+  }
+
+  if (!password || !confirmPassword) {
+    toast('Please create and confirm a password.', 'crimson');
+    return;
+  }
+
+  if (password.length < 8) {
+    toast('Password must be at least 8 characters.', 'crimson');
+    return;
+  }
+
+  if (password !== confirmPassword) {
+    toast('Passwords do not match.', 'crimson');
     return;
   }
 
@@ -854,7 +1037,8 @@ async function saveStudent() {
     name,
     email,
     phone: phone || null,
-    department: dept || 'Computer Science'
+    department: dept || 'Computer Science',
+    password
   };
 
   if (idVal) {
@@ -862,24 +1046,32 @@ async function saveStudent() {
   }
 
   try {
-    const response = await fetch(`${API_BASE}/students`, {
+    const response = await fetch(`${API_BASE}/students/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
 
     const result = await response.json();
-    if (!response.ok) throw new Error(result.error || 'Could not save student');
+
+    if (!response.ok) {
+      throw new Error(result.error || 'Could not register student.');
+    }
 
     closeStudentModal();
-    toast(`Student "${name}" registered successfully.`, 'sage');
+
+    toast(
+      `Student registered! Student ID: ${result.student_id}`,
+      'sage'
+    );
+
     await loadAllFromDatabase();
+
   } catch (err) {
-    console.error('Save student error:', err);
-    toast(err.message, 'crimson');
+    console.error('Student registration error:', err);
+    toast(err.message || 'Registration failed.', 'crimson');
   }
 }
-
 async function saveBook() {
   const title = document.getElementById('bf-title').value.trim();
   const author = document.getElementById('bf-author').value.trim();
@@ -1150,4 +1342,87 @@ function renderCharts() {
       }
     });
   }
+}
+function showPasswordSetup() {
+  document.getElementById('password-setup-panel')
+    .classList.remove('hidden');
+}
+
+function hidePasswordSetup() {
+  document.getElementById('password-setup-panel')
+    .classList.add('hidden');
+
+  document.getElementById('password-setup-form').reset();
+}
+
+async function submitPasswordSetup(e) {
+  e.preventDefault();
+
+  const studentId =
+    document.getElementById('setup-student-id').value.trim();
+
+  const email =
+    document.getElementById('setup-email').value.trim();
+
+  const password =
+    document.getElementById('setup-password').value;
+
+  const confirmPassword =
+    document.getElementById('setup-confirm-password').value;
+
+  if (password.length < 8) {
+    toast('Password must be at least 8 characters.', 'crimson');
+    return false;
+  }
+
+  if (password !== confirmPassword) {
+    toast('Passwords do not match.', 'crimson');
+    return false;
+  }
+
+  try {
+    const response = await fetch(
+      `${API_BASE}/auth/student-set-password`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          student_id: studentId,
+          email: email,
+          password: password
+        })
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        result.error || 'Could not set password.'
+      );
+    }
+
+    document.getElementById('password-setup-form').reset();
+    hidePasswordSetup();
+
+    document.getElementById('login-id').value = studentId;
+    document.getElementById('login-pass').value = '';
+
+    toast(
+      'Password created! Log in using your student ID and new password.',
+      'sage'
+    );
+
+  } catch (err) {
+    console.error('Password setup error:', err);
+
+    toast(
+      err.message || 'Could not connect to the backend.',
+      'crimson'
+    );
+  }
+
+  return false;
 }

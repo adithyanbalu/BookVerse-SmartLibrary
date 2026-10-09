@@ -1,77 +1,45 @@
+const API_BASE = 'http://localhost:8080/api';
+
 const SPINE_COLORS = ['#B8873D', '#4E6B52', '#9B3E3E', '#3A5A78', '#7A5C3E', '#5C4A78'];
 
-let books = [
-  { id: 1, title: 'Database System Concepts', author: 'Silberschatz, Korth, Sudarshan', category: 'Computer Science', accession: 'ACC-1042', copies: 4, available: 3 },
-  { id: 2, title: 'Introduction to Algorithms', author: 'Cormen, Leiserson, Rivest, Stein', category: 'Computer Science', accession: 'ACC-1043', copies: 3, available: 0 },
-  { id: 3, title: 'Computer Networks', author: 'Andrew S. Tanenbaum', category: 'Computer Science', accession: 'ACC-1044', copies: 2, available: 2 },
-  { id: 4, title: 'Linear Algebra and Its Applications', author: 'David C. Lay', category: 'Mathematics', accession: 'ACC-2011', copies: 3, available: 1 },
-  { id: 5, title: 'Discrete Mathematics and Its Applications', author: 'Kenneth H. Rosen', category: 'Mathematics', accession: 'ACC-2012', copies: 2, available: 0 },
-  { id: 6, title: 'Clean Code', author: 'Robert C. Martin', category: 'Computer Science', accession: 'ACC-1045', copies: 5, available: 4 },
-  { id: 7, title: 'Operating System Concepts', author: 'Silberschatz, Galvin, Gagne', category: 'Computer Science', accession: 'ACC-1046', copies: 3, available: 2 },
-  { id: 8, title: 'Thinking, Fast and Slow', author: 'Daniel Kahneman', category: 'Literature', accession: 'ACC-3021', copies: 2, available: 2 },
-  { id: 9, title: 'Principles of Economics', author: 'N. Gregory Mankiw', category: 'Business', accession: 'ACC-4011', copies: 2, available: 1 },
-  { id: 10, title: 'Digital Design and Computer Architecture', author: 'Harris & Harris', category: 'Engineering', accession: 'ACC-5001', copies: 2, available: 0 },
-  { id: 11, title: 'The Pragmatic Programmer', author: 'Hunt & Thomas', category: 'Computer Science', accession: 'ACC-1047', copies: 3, available: 3 },
-  { id: 12, title: 'Artificial Intelligence: A Modern Approach', author: 'Russell & Norvig', category: 'Computer Science', accession: 'ACC-1048', copies: 3, available: 1 },
-];
-
-let students = [
-  { roll: 'AM.SC.U4CSE25014', name: 'Adithyan B', program: 'B.Tech CSE, S3', loans: 2, fines: 0, status: 'Active' },
-  { roll: 'AM.SC.U4CSE25040', name: 'Madhav A', program: 'B.Tech CSE, S3', loans: 1, fines: 40, status: 'Active' },
-  { roll: 'AM.SC.U4CSE25049', name: 'Robin Antony', program: 'B.Tech CSE, S3', loans: 3, fines: 0, status: 'Active' },
-  { roll: 'AM.SC.U4CSE25024', name: 'Ali Adnan Thaha', program: 'B.Tech CSE, S3', loans: 0, fines: 0, status: 'Active' },
-  { roll: 'AM.SC.U4CSE24102', name: 'Fathima Rasheed', program: 'B.Tech ECE, S5', loans: 1, fines: 20, status: 'Active' },
-  { roll: 'AM.SC.U4CSE23088', name: 'Nikhil Menon', program: 'B.Tech ME, S7', loans: 0, fines: 0, status: 'Suspended' },
-];
-
-let loans = [
-  { id: 1, book: 'Introduction to Algorithms', student: 'Madhav A', issued: '2026-07-10', due: '2026-07-24', status: 'overdue', daysOverdue: 9 },
-  { id: 2, book: 'Digital Design and Computer Architecture', student: 'Robin Antony', issued: '2026-07-18', due: '2026-08-01', status: 'overdue', daysOverdue: 1 },
-  { id: 3, book: 'Discrete Mathematics and Its Applications', student: 'Adithyan B', issued: '2026-07-22', due: '2026-08-05', status: 'active', daysOverdue: 0 },
-  { id: 4, book: 'Artificial Intelligence: A Modern Approach', student: 'Fathima Rasheed', issued: '2026-07-25', due: '2026-08-08', status: 'active', daysOverdue: 0 },
-  { id: 5, book: 'Linear Algebra and Its Applications', student: 'Robin Antony', issued: '2026-07-27', due: '2026-08-10', status: 'active', daysOverdue: 0 },
-  { id: 6, book: 'Principles of Economics', student: 'Robin Antony', issued: '2026-07-28', due: '2026-08-11', status: 'active', daysOverdue: 0 },
-];
-
-let reservations = [
-  { id: 1, book: 'Introduction to Algorithms', student: 'Ali Adnan Thaha', requested: '2026-07-30', status: 'pending' },
-  { id: 2, book: 'Discrete Mathematics and Its Applications', student: 'Fathima Rasheed', requested: '2026-07-29', status: 'pending' },
-  { id: 3, book: 'Digital Design and Computer Architecture', student: 'Madhav A', requested: '2026-07-31', status: 'approved' },
-];
-
-let fines = [
-  { student: 'Madhav A', book: 'Introduction to Algorithms', days: 9, amount: 90, status: 'unpaid' },
-  { student: 'Robin Antony', book: 'Digital Design and Computer Architecture', days: 1, amount: 10, status: 'unpaid' },
-  { student: 'Fathima Rasheed', book: 'Operating System Concepts', days: 4, amount: 40, status: 'paid' },
-];
+let books = [];
+let students = [];
+let loans = [];
+let reservations = [];
+let fines = [];
 
 let currentRole = 'admin';
 let bookCategoryFilter = 'All';
+let editingBookId = null;
 
 function setRole(role) {
   currentRole = role;
   document.getElementById('role-admin-btn').classList.toggle('active', role === 'admin');
   document.getElementById('role-student-btn').classList.toggle('active', role === 'student');
   document.getElementById('login-id-label').textContent = role === 'admin' ? 'Admin ID' : 'Roll Number';
-  document.getElementById('login-id').placeholder = role === 'admin' ? 'e.g. LIB-ADM-002' : 'e.g. AM.SC.U4CSE25014';
+  document.getElementById('login-id').placeholder = role === 'admin' ? 'e.g. LIB-ADM-002' : 'e.g. 25014';
 }
 
 function doLogin(e) {
   e.preventDefault();
+
   document.getElementById('view-login').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
 
-  const idVal = document.getElementById('login-id').value || (currentRole === 'admin' ? 'Admin User' : 'Adithyan B');
+  const idVal = document.getElementById('login-id').value ||
+    (currentRole === 'admin' ? 'Admin User' : 'Adithyan B');
 
   document.getElementById('nav-admin').classList.toggle('hidden', currentRole !== 'admin');
   document.getElementById('nav-student').classList.toggle('hidden', currentRole !== 'student');
 
   document.getElementById('user-name').textContent = currentRole === 'admin' ? 'Library Admin' : idVal;
   document.getElementById('user-role').textContent = currentRole === 'admin' ? 'administrator' : 'student';
-  document.getElementById('user-avatar').textContent = (currentRole === 'admin' ? 'LA' : idVal.slice(0,2)).toUpperCase();
+  document.getElementById('user-avatar').textContent =
+    (currentRole === 'admin' ? 'LA' : idVal.slice(0, 2)).toUpperCase();
 
   goView(currentRole === 'admin' ? 'dashboard' : 's-dashboard');
-  renderAll();
+  loadAllFromDatabase();
+
   return false;
 }
 
@@ -83,27 +51,30 @@ function doLogout() {
 
 function goView(name) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+
   const target = document.getElementById('view-' + name);
   if (target) target.classList.add('active');
 
   document.querySelectorAll('.drawer').forEach(d => d.classList.remove('active'));
+
   const nav = document.querySelector(`.drawer[data-view="${name}"]`);
   if (nav) nav.classList.add('active');
 
   const titles = {
-    'dashboard': ['Overview', 'Dashboard'],
-    'catalog': ['Catalog', 'Book Catalog'],
-    'students': ['Circulation', 'Students'],
+    dashboard: ['Overview', 'Dashboard'],
+    catalog: ['Catalog', 'Book Catalog'],
+    students: ['Circulation', 'Students'],
     'issue-return': ['Circulation', 'Issue & Return'],
-    'reservations': ['Circulation', 'Reservations'],
-    'fines': ['Circulation', 'Fines'],
-    'reports': ['Insights', 'Reports'],
+    reservations: ['Circulation', 'Reservations'],
+    fines: ['Circulation', 'Fines'],
+    reports: ['Insights', 'Reports'],
     's-dashboard': ['Overview', 'My Dashboard'],
     's-catalog': ['Library', 'Browse & Search'],
     's-loans': ['Library', 'My Loans'],
     's-reservations': ['Library', 'My Reservations'],
-    's-fines': ['Library', 'My Fines'],
+    's-fines': ['Library', 'My Fines']
   };
+
   if (titles[name]) {
     document.getElementById('crumb').textContent = titles[name][0];
     document.getElementById('page-title').textContent = titles[name][1];
@@ -115,11 +86,15 @@ function goView(name) {
 
 function stamp(text, kind) {
   const layer = document.getElementById('stamp-layer');
+  if (!layer) return;
   const el = document.createElement('div');
+
   el.className = `stamp stamp-${kind}`;
   el.textContent = text;
   layer.appendChild(el);
+
   requestAnimationFrame(() => el.classList.add('go'));
+
   setTimeout(() => {
     el.classList.add('fade');
     setTimeout(() => el.remove(), 420);
@@ -128,10 +103,13 @@ function stamp(text, kind) {
 
 function toast(msg, kind) {
   const stack = document.getElementById('toast-stack');
+  if (!stack) return;
   const el = document.createElement('div');
+
   el.className = `toast ${kind === 'sage' ? 'success' : kind === 'crimson' ? 'warn' : ''}`;
   el.textContent = msg;
   stack.appendChild(el);
+
   setTimeout(() => {
     el.style.opacity = '0';
     el.style.transition = 'opacity .3s';
@@ -139,7 +117,21 @@ function toast(msg, kind) {
   }, 2600);
 }
 
-function spineColor(id) { return SPINE_COLORS[id % SPINE_COLORS.length]; }
+function spineColor(id) {
+  return SPINE_COLORS[id % SPINE_COLORS.length];
+}
+
+async function loadAllFromDatabase() {
+  await Promise.allSettled([
+    loadBooksFromDatabase(),
+    loadStudentsFromDatabase(),
+    loadLoansFromDatabase(),
+    loadReservationsFromDatabase(),
+    loadFinesFromDatabase(),
+    loadDashboardStats()
+  ]);
+  renderAll();
+}
 
 function renderAll() {
   renderAdminCatalog();
@@ -158,14 +150,182 @@ function renderAll() {
   renderCatalogChips();
 }
 
-function categories() { return ['All', ...new Set(books.map(b => b.category))]; }
+async function loadBooksFromDatabase() {
+  try {
+    const response = await fetch(`${API_BASE}/books`);
+    if (!response.ok) throw new Error('HTTP error ' + response.status);
+    const data = await response.json();
+
+    books = data.map(b => ({
+      id: b.book_id,
+      book_id: b.book_id,
+      title: b.title,
+      author: b.author_name || 'Unknown Author',
+      author_name: b.author_name,
+      category: b.category_name || 'General',
+      category_id: b.category_id,
+      publisher_id: b.publisher_id,
+      publisher: b.publisher_name || 'Publisher',
+      accession: 'ACC-' + b.book_id,
+      copies: b.total_copies ?? 0,
+      available: b.available_copies ?? 0,
+      isbn: b.isbn,
+      publicationYear: b.publication_year
+    }));
+
+    renderAdminCatalog();
+    renderStudentCatalog();
+    renderIssueReturnForm();
+    renderCatalogChips();
+    renderRecommendations();
+  } catch (err) {
+    console.error('Failed loading books:', err);
+    toast('Could not load books from PostgreSQL.', 'crimson');
+  }
+}
+
+async function loadStudentsFromDatabase() {
+  try {
+    const response = await fetch(`${API_BASE}/students`);
+    if (!response.ok) throw new Error('HTTP error ' + response.status);
+    const data = await response.json();
+
+    students = data.map(s => ({
+      id: s.student_id,
+      roll: 'STU-' + s.student_id,
+      name: s.name,
+      email: s.email,
+      phone: s.phone || 'N/A',
+      program: s.department || 'Computer Science',
+      loans: s.active_loans ?? 0,
+      fines: s.total_fines ?? 0,
+      status: 'Active'
+    }));
+
+    renderStudentTable();
+    renderIssueReturnForm();
+  } catch (err) {
+    console.error('Failed loading students:', err);
+  }
+}
+
+async function loadLoansFromDatabase() {
+  try {
+    const response = await fetch(`${API_BASE}/loans`);
+    if (!response.ok) throw new Error('HTTP error ' + response.status);
+    const data = await response.json();
+
+    loans = data.map(l => ({
+      id: l.borrow_id,
+      borrow_id: l.borrow_id,
+      book: l.book_title,
+      book_id: l.book_id,
+      student: l.student_name,
+      student_id: l.student_id,
+      accession: l.accession_number,
+      issued: l.issue_date,
+      due: l.due_date,
+      return_date: l.return_date,
+      status: l.status.toLowerCase(),
+      daysOverdue: l.days_overdue ?? 0,
+      fineAmount: l.fine_amount ?? 0
+    }));
+
+    renderActiveLoans();
+    renderDueSoon();
+    renderStudentLoans();
+  } catch (err) {
+    console.error('Failed loading loans:', err);
+  }
+}
+
+async function loadReservationsFromDatabase() {
+  try {
+    const response = await fetch(`${API_BASE}/reservations`);
+    if (!response.ok) throw new Error('HTTP error ' + response.status);
+    const data = await response.json();
+
+    reservations = data.map(r => ({
+      id: r.reservation_id,
+      reservation_id: r.reservation_id,
+      book: r.book_title,
+      book_id: r.book_id,
+      student: r.student_name,
+      student_id: r.student_id,
+      requested: r.reservation_date,
+      status: r.status.toLowerCase()
+    }));
+
+    renderReservationsTable();
+    renderStudentReservations();
+  } catch (err) {
+    console.error('Failed loading reservations:', err);
+  }
+}
+
+async function loadFinesFromDatabase() {
+  try {
+    const response = await fetch(`${API_BASE}/fines`);
+    if (!response.ok) throw new Error('HTTP error ' + response.status);
+    const data = await response.json();
+
+    fines = data.map(f => ({
+      id: f.fine_id,
+      fine_id: f.fine_id,
+      student: f.student_name,
+      book: f.book_title,
+      days: f.overdue_days ?? 0,
+      amount: f.amount,
+      status: f.payment_status.toLowerCase()
+    }));
+
+    renderFineTable();
+    renderStudentFines();
+  } catch (err) {
+    console.error('Failed loading fines:', err);
+  }
+}
+
+async function loadDashboardStats() {
+  try {
+    const response = await fetch(`${API_BASE}/dashboard/stats`);
+    if (!response.ok) throw new Error('HTTP error ' + response.status);
+    const stats = await response.json();
+
+    const elBooks = document.getElementById('stat-total-books');
+    const elLoans = document.getElementById('stat-active-loans');
+    const elOverdue = document.getElementById('stat-overdue');
+    const elFines = document.getElementById('stat-outstanding-fines');
+
+    if (elBooks) elBooks.textContent = stats.total_books ?? 0;
+    if (elLoans) elLoans.textContent = stats.active_loans ?? 0;
+    if (elOverdue) elOverdue.textContent = stats.pending_reservations ?? 0;
+    if (elFines) elFines.textContent = '₹' + (stats.outstanding_fines ?? 0).toFixed(2);
+  } catch (err) {
+    console.error('Failed loading dashboard stats:', err);
+  }
+}
+
+function categories() {
+  return ['All', ...new Set(books.map(b => b.category))];
+}
 
 function renderCatalogChips() {
   const cats = categories();
-  const adminHtml = cats.map(c => `<span class="chip ${c===bookCategoryFilter?'active':''}" onclick="filterCategory('${c}','admin')">${c}</span>`).join('');
-  const studentHtml = cats.map(c => `<span class="chip ${c===bookCategoryFilter?'active':''}" onclick="filterCategory('${c}','student')">${c}</span>`).join('');
-  document.getElementById('admin-catalog-chips').innerHTML = adminHtml;
-  document.getElementById('student-catalog-chips').innerHTML = studentHtml;
+
+  const adminHtml = cats.map(c =>
+    `<span class="chip ${c === bookCategoryFilter ? 'active' : ''}" onclick="filterCategory('${c}','admin')">${c}</span>`
+  ).join('');
+
+  const studentHtml = cats.map(c =>
+    `<span class="chip ${c === bookCategoryFilter ? 'active' : ''}" onclick="filterCategory('${c}','student')">${c}</span>`
+  ).join('');
+
+  const elAdminChips = document.getElementById('admin-catalog-chips');
+  const elStudentChips = document.getElementById('student-catalog-chips');
+
+  if (elAdminChips) elAdminChips.innerHTML = adminHtml;
+  if (elStudentChips) elStudentChips.innerHTML = studentHtml;
 }
 
 function filterCategory(cat, who) {
@@ -177,7 +337,10 @@ function filterCategory(cat, who) {
 
 function renderAdminCatalog() {
   const rows = books.filter(b => bookCategoryFilter === 'All' || b.category === bookCategoryFilter);
-  document.getElementById('admin-book-table').innerHTML = rows.map(b => `
+  const elTable = document.getElementById('admin-book-table');
+  if (!elTable) return;
+
+  elTable.innerHTML = rows.map(b => `
     <tr>
       <td><strong>${b.title}</strong></td>
       <td>${b.author}</td>
@@ -198,49 +361,87 @@ function emptyRow(colspan) {
 }
 
 function renderStudentTable() {
-  document.getElementById('student-table').innerHTML = students.map(s => `
+  const el = document.getElementById('student-table');
+  if (!el) return;
+
+  el.innerHTML = students.map(s => `
     <tr>
       <td class="mono">${s.roll}</td>
       <td><strong>${s.name}</strong></td>
       <td>${s.program}</td>
       <td>${s.loans}</td>
       <td>${s.fines > 0 ? '₹' + s.fines : '—'}</td>
-      <td>${s.status === 'Active' ? '<span class="pill pill-sage">Active</span>' : '<span class="pill pill-crimson">Suspended</span>'}</td>
-      <td class="row-actions"><button class="btn btn-sm" onclick="toast('Viewing profile for ${s.name}', 'ink')">View</button></td>
+      <td><span class="pill pill-sage">${s.status}</span></td>
+      <td class="row-actions">
+        <button class="btn btn-sm" onclick="toast('Student ID ${s.id}: ${s.email}', 'ink')">View</button>
+      </td>
     </tr>
-  `).join('');
+  `).join('') || emptyRow(7);
 }
 
 function renderIssueReturnForm() {
-  document.getElementById('issue-student').innerHTML = students.filter(s=>s.status==='Active').map(s => `<option value="${s.name}">${s.name} — ${s.roll}</option>`).join('');
-  document.getElementById('issue-book').innerHTML = books.filter(b => b.available > 0).map(b => `<option value="${b.title}">${b.title} (${b.available} available)</option>`).join('');
-  const d = new Date(); d.setDate(d.getDate() + 14);
-  document.getElementById('issue-due').value = d.toISOString().slice(0,10);
+  const elStudent = document.getElementById('issue-student');
+  const elBook = document.getElementById('issue-book');
+  const elDue = document.getElementById('issue-due');
+
+  if (elStudent) {
+    elStudent.innerHTML = students.map(s =>
+      `<option value="${s.id}">${s.name} (ID: ${s.id})</option>`
+    ).join('') || '<option value="">No students available</option>';
+  }
+
+  if (elBook) {
+    elBook.innerHTML = books.filter(b => b.available > 0).map(b =>
+      `<option value="${b.id}">${b.title} (${b.available} available)</option>`
+    ).join('') || '<option value="">No available books</option>';
+  }
+
+  if (elDue) {
+    const d = new Date();
+    d.setDate(d.getDate() + 14);
+    elDue.value = d.toISOString().slice(0, 10);
+  }
 }
 
 function renderActiveLoans() {
-  document.getElementById('active-loans-body').innerHTML = loans.map(l => {
-    const daysLeft = Math.round((new Date(l.due) - new Date('2026-08-02')) / 86400000);
+  const el = document.getElementById('active-loans-body');
+  if (!el) return;
+
+  const active = loans.filter(l => l.status === 'issued' || l.status === 'overdue');
+
+  el.innerHTML = active.map(l => {
+    const daysLeft = Math.round((new Date(l.due) - new Date()) / 86400000);
+
     return `
-    <tr>
-      <td><strong>${l.book}</strong></td>
-      <td>${l.student}</td>
-      <td class="mono">${l.due}</td>
-      <td>${daysLeft < 0 ? `<span class="pill pill-crimson">${Math.abs(daysLeft)}d overdue</span>` : `<span class="pill pill-sage">${daysLeft}d left</span>`}</td>
-      <td class="row-actions"><button class="btn btn-sm btn-brass" onclick="returnBook(${l.id})">Return</button></td>
-    </tr>`;
+      <tr>
+        <td><strong>${l.book}</strong></td>
+        <td>${l.student}</td>
+        <td class="mono">${l.due}</td>
+        <td>${daysLeft < 0
+          ? `<span class="pill pill-crimson">${Math.abs(daysLeft)}d overdue</span>`
+          : `<span class="pill pill-sage">${daysLeft}d left</span>`}</td>
+        <td class="row-actions">
+          <button class="btn btn-sm btn-brass" onclick="returnBook(${l.borrow_id})">Return</button>
+        </td>
+      </tr>`;
   }).join('') || emptyRow(5);
 }
 
 function renderReservationsTable() {
-  document.getElementById('reservation-table').innerHTML = reservations.map(r => `
+  const el = document.getElementById('reservation-table');
+  if (!el) return;
+
+  el.innerHTML = reservations.map(r => `
     <tr>
       <td><strong>${r.book}</strong></td>
       <td>${r.student}</td>
       <td class="mono">${r.requested}</td>
       <td>${statusPill(r.status)}</td>
       <td class="row-actions">
-        ${r.status === 'pending' ? `<button class="btn btn-sm btn-sage" onclick="approveReservation(${r.id})">Approve</button><button class="btn btn-sm" onclick="rejectReservation(${r.id})">Reject</button>` : '<span class="mono" style="opacity:.4">—</span>'}
+        ${r.status === 'pending'
+          ? `<button class="btn btn-sm btn-sage" onclick="approveReservation(${r.reservation_id})">Approve</button>
+             <button class="btn btn-sm" onclick="rejectReservation(${r.reservation_id})">Reject</button>`
+          : '<span class="mono" style="opacity:.4">—</span>'}
       </td>
     </tr>
   `).join('') || emptyRow(5);
@@ -253,21 +454,32 @@ function statusPill(status) {
 }
 
 function renderFineTable() {
-  document.getElementById('fine-table').innerHTML = fines.map((f,i) => `
+  const el = document.getElementById('fine-table');
+  if (!el) return;
+
+  el.innerHTML = fines.map(f => `
     <tr>
       <td><strong>${f.student}</strong></td>
       <td>${f.book}</td>
       <td>${f.days}</td>
       <td class="mono">₹${f.amount}</td>
       <td>${f.status === 'paid' ? '<span class="pill pill-sage">Paid</span>' : '<span class="pill pill-crimson">Unpaid</span>'}</td>
-      <td class="row-actions">${f.status === 'unpaid' ? `<button class="btn btn-sm btn-brass" onclick="markFinePaid(${i})">Mark paid</button>` : '<span class="mono" style="opacity:.4">—</span>'}</td>
+      <td class="row-actions">
+        ${f.status === 'pending' || f.status === 'unpaid'
+          ? `<button class="btn btn-sm btn-brass" onclick="markFinePaid(${f.id})">Mark paid</button>`
+          : '<span class="mono" style="opacity:.4">—</span>'}
+      </td>
     </tr>
   `).join('') || emptyRow(6);
 }
 
 function renderStudentCatalog() {
+  const el = document.getElementById('student-catalog-grid');
+  if (!el) return;
+
   const rows = books.filter(b => bookCategoryFilter === 'All' || b.category === bookCategoryFilter);
-  document.getElementById('student-catalog-grid').innerHTML = rows.map(b => `
+
+  el.innerHTML = rows.map(b => `
     <div class="index-card" id="card-${b.id}">
       <div class="index-card-inner">
         <div class="card-face card-front" onclick="flipCard(${b.id})">
@@ -276,7 +488,7 @@ function renderStudentCatalog() {
           <div class="title">${b.title}</div>
           <div class="author">${b.author}</div>
           <div class="meta-row">
-            <span class="avail-badge ${b.available>0?'yes':'no'}">${b.available>0? b.available+' available':'all issued'}</span>
+            <span class="avail-badge ${b.available > 0 ? 'yes' : 'no'}">${b.available > 0 ? b.available + ' available' : 'all issued'}</span>
             <span class="mono" style="opacity:.4;">flip →</span>
           </div>
         </div>
@@ -288,7 +500,7 @@ function renderStudentCatalog() {
             <dt>Copies held</dt><dd>${b.copies} total, ${b.available} on shelf</dd>
           </dl>
           <div class="back-actions">
-            <button class="btn btn-sm btn-sage" onclick="event.stopPropagation(); issueOrReserve(${b.id})">${b.available>0?'Issue to me':'Reserve'}</button>
+            <button class="btn btn-sm btn-sage" onclick="event.stopPropagation(); issueOrReserve(${b.id})">${b.available > 0 ? 'Issue to me' : 'Reserve'}</button>
           </div>
           <div class="flip-hint">click card to flip back</div>
         </div>
@@ -298,210 +510,515 @@ function renderStudentCatalog() {
 }
 
 function flipCard(id) {
-  document.getElementById('card-' + id).classList.toggle('flipped');
+  const card = document.getElementById('card-' + id);
+  if (card) card.classList.toggle('flipped');
 }
 
-function issueOrReserve(id) {
-  const b = books.find(x => x.id === id);
+async function issueOrReserve(bookId) {
+  const b = books.find(x => Number(x.id) === Number(bookId));
+  if (!b) return;
+
+  const studentId = 25014; // Default demo student Adithyan B
+
   if (b.available > 0) {
-    b.available -= 1;
-    renderStudentCatalog();
-    renderAdminCatalog();
-    stamp('Issued', 'issue');
-    toast(`"${b.title}" issued to your account — due in 14 days.`, 'sage');
+    try {
+      const response = await fetch(`${API_BASE}/loans/issue`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ student_id: studentId, book_id: bookId })
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Failed to issue book');
+      stamp('Issued', 'issue');
+      toast(`"${b.title}" issued to your account.`, 'sage');
+      await loadAllFromDatabase();
+    } catch (err) {
+      toast(err.message, 'crimson');
+    }
   } else {
-    stamp('Reserved', 'issue');
-    toast(`"${b.title}" reserved — you'll be notified when it's back.`, 'ink');
+    try {
+      const response = await fetch(`${API_BASE}/reservations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ student_id: studentId, book_id: bookId })
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Failed to reserve book');
+      stamp('Reserved', 'issue');
+      toast(`"${b.title}" reserved successfully.`, 'sage');
+      await loadAllFromDatabase();
+    } catch (err) {
+      toast(err.message, 'crimson');
+    }
   }
 }
 
 function renderStudentLoans() {
-  const mini = loans.slice(0,3).map(l => `
-    <tr><td><strong>${l.book}</strong></td><td class="mono">${l.due}</td><td>${l.status==='overdue'?'<span class="pill pill-crimson">Overdue</span>':'<span class="pill pill-sage">On time</span>'}</td>
-    <td><button class="btn btn-sm btn-brass" onclick="stamp('Returned','return'); toast('Return recorded','sage')">Return</button></td></tr>
-  `).join('');
-  document.getElementById('student-loans-mini').innerHTML = mini;
+  const elMini = document.getElementById('student-loans-mini');
+  const elFull = document.getElementById('student-loans-full');
 
-  const full = loans.map(l => `
-    <tr><td><strong>${l.book}</strong></td><td class="mono">${l.issued}</td><td class="mono">${l.due}</td>
-    <td>${l.status==='overdue'?'<span class="pill pill-crimson">Overdue</span>':'<span class="pill pill-sage">On time</span>'}</td>
-    <td><button class="btn btn-sm btn-brass" onclick="stamp('Returned','return'); toast('Return recorded','sage')">Return</button></td></tr>
-  `).join('');
-  document.getElementById('student-loans-full').innerHTML = full;
+  if (elMini) {
+    elMini.innerHTML = loans.slice(0, 3).map(l => `
+      <tr>
+        <td><strong>${l.book}</strong></td>
+        <td class="mono">${l.due}</td>
+        <td>${l.status === 'overdue' ? '<span class="pill pill-crimson">Overdue</span>' : '<span class="pill pill-sage">On time</span>'}</td>
+        <td><button class="btn btn-sm btn-brass" onclick="returnBook(${l.borrow_id})">Return</button></td>
+      </tr>
+    `).join('') || emptyRow(4);
+  }
+
+  if (elFull) {
+    elFull.innerHTML = loans.map(l => `
+      <tr>
+        <td><strong>${l.book}</strong></td>
+        <td class="mono">${l.issued}</td>
+        <td class="mono">${l.due}</td>
+        <td>${l.status === 'overdue' ? '<span class="pill pill-crimson">Overdue</span>' : '<span class="pill pill-sage">On time</span>'}</td>
+        <td>${l.status !== 'returned' ? `<button class="btn btn-sm btn-brass" onclick="returnBook(${l.borrow_id})">Return</button>` : '<span class="mono" style="opacity:.4">Returned</span>'}</td>
+      </tr>
+    `).join('') || emptyRow(5);
+  }
 }
 
 function renderStudentReservations() {
-  document.getElementById('student-reservations-table').innerHTML = reservations.map(r => `
-    <tr><td><strong>${r.book}</strong></td><td class="mono">${r.requested}</td><td>${statusPill(r.status)}</td>
-    <td><button class="btn btn-sm" onclick="toast('Reservation cancelled','ink')">Cancel</button></td></tr>
-  `).join('');
+  const el = document.getElementById('student-reservations-table');
+  if (!el) return;
+
+  el.innerHTML = reservations.map(r => `
+    <tr>
+      <td><strong>${r.book}</strong></td>
+      <td class="mono">${r.requested}</td>
+      <td>${statusPill(r.status)}</td>
+      <td>—</td>
+    </tr>
+  `).join('') || emptyRow(4);
 }
 
 function renderStudentFines() {
-  document.getElementById('student-fines-table').innerHTML = fines.map(f => `
-    <tr><td>${f.book}</td><td>${f.days}</td><td class="mono">₹${f.amount}</td>
-    <td>${f.status==='paid'?'<span class="pill pill-sage">Paid</span>':'<span class="pill pill-crimson">Unpaid</span>'}</td></tr>
-  `).join('');
+  const el = document.getElementById('student-fines-table');
+  if (!el) return;
+
+  el.innerHTML = fines.map(f => `
+    <tr>
+      <td>${f.book}</td>
+      <td>${f.days}</td>
+      <td class="mono">₹${f.amount}</td>
+      <td>${f.status === 'paid' ? '<span class="pill pill-sage">Paid</span>' : '<span class="pill pill-crimson">Unpaid</span>'}</td>
+    </tr>
+  `).join('') || emptyRow(4);
 }
 
 function renderActivityFeed() {
+  const el = document.getElementById('activity-feed');
+  if (!el) return;
+
   const items = [
-    ['Robin Antony returned', 'Clean Code', '2 min ago', 'sage'],
-    ['Fine of ₹40 recorded for', 'Madhav A', '18 min ago', 'crimson'],
-    ['Adithyan B reserved', 'Discrete Mathematics', '46 min ago', 'brass'],
-    ['New title catalogued:', 'AI: A Modern Approach', '1 hr ago', 'ink'],
+    ['Circulation updated via PostgreSQL', 'Live Database', 'Just now', 'sage'],
+    ['Fine tracking synced with DB', 'System Engine', '5 min ago', 'crimson'],
+    ['Book reservation engine active', 'Smart Circulation', '12 min ago', 'brass'],
+    ['BookVerse Backend online at', 'localhost:8080', 'Active', 'ink']
   ];
-  document.getElementById('activity-feed').innerHTML = items.map(([a,b,t,c]) => `
+
+  el.innerHTML = items.map(([a, b, t, c]) => `
     <div style="display:flex; gap:10px; align-items:flex-start; padding:9px 0; border-bottom:1px solid var(--line);">
-      <span style="width:7px;height:7px;border-radius:50%;margin-top:5px;flex-shrink:0;background:${c==='sage'?'var(--sage)':c==='crimson'?'var(--crimson)':c==='brass'?'var(--brass)':'var(--ink-soft)'}"></span>
-      <div style="font-size:12.5px; line-height:1.4;"><strong>${b}</strong> — ${a}<div style="opacity:.45; font-size:10.5px; margin-top:2px;">${t}</div></div>
+      <span style="width:7px;height:7px;border-radius:50%;margin-top:5px;flex-shrink:0;background:${c === 'sage' ? 'var(--sage)' : c === 'crimson' ? 'var(--crimson)' : c === 'brass' ? 'var(--brass)' : 'var(--ink-soft)'}"></span>
+      <div style="font-size:12.5px; line-height:1.4;">
+        <strong>${b}</strong> — ${a}
+        <div style="opacity:.45; font-size:10.5px; margin-top:2px;">${t}</div>
+      </div>
     </div>
   `).join('');
 }
 
 function renderDueSoon() {
-  document.getElementById('due-soon-body').innerHTML = loans.map(l => `
+  const el = document.getElementById('due-soon-body');
+  if (!el) return;
+
+  const dueList = loans.filter(l => l.status === 'issued' || l.status === 'overdue');
+
+  el.innerHTML = dueList.map(l => `
     <tr>
       <td><strong>${l.book}</strong></td>
       <td>${l.student}</td>
       <td class="mono">${l.issued}</td>
       <td class="mono">${l.due}</td>
-      <td>${l.status==='overdue' ? '<span class="pill pill-crimson">Overdue</span>' : '<span class="pill pill-sage">On time</span>'}</td>
+      <td>${l.status === 'overdue' ? '<span class="pill pill-crimson">Overdue</span>' : '<span class="pill pill-sage">On time</span>'}</td>
       <td><button class="btn btn-sm" onclick="goView('issue-return')">Manage</button></td>
     </tr>
-  `).join('');
+  `).join('') || emptyRow(6);
 }
 
 function renderRecommendations() {
-  const recs = books.filter(b=>b.category==='Computer Science').slice(0,3);
-  document.getElementById('recommend-list').innerHTML = recs.map(b => `
+  const el = document.getElementById('recommend-list');
+  if (!el) return;
+
+  const recs = books.slice(0, 3);
+
+  el.innerHTML = recs.map(b => `
     <div style="display:flex; gap:10px; align-items:center; padding:9px 0; border-bottom:1px solid var(--line);">
       <div style="width:5px;height:34px;border-radius:2px;background:${spineColor(b.id)}"></div>
-      <div style="flex:1;"><strong style="font-size:12.5px;">${b.title}</strong><div style="font-size:11px; opacity:.55;">${b.author}</div></div>
+      <div style="flex:1;">
+        <strong style="font-size:12.5px;">${b.title}</strong>
+        <div style="font-size:11px; opacity:.55;">${b.author}</div>
+      </div>
       <button class="btn btn-sm" onclick="goView('s-catalog')">View</button>
     </div>
-  `).join('');
+  `).join('') || '<div style="font-size:12px; opacity:.6;">No recommendations right now</div>';
 }
 
-function issueBook() {
-  const student = document.getElementById('issue-student').value;
-  const bookTitle = document.getElementById('issue-book').value;
+async function issueBook() {
+  const studentId = document.getElementById('issue-student').value;
+  const bookId = document.getElementById('issue-book').value;
   const due = document.getElementById('issue-due').value;
-  if (!student || !bookTitle) { toast('Select a student and a book first', 'crimson'); return; }
-  const b = books.find(x => x.title === bookTitle);
-  if (b && b.available > 0) b.available -= 1;
-  loans.unshift({ id: Date.now(), book: bookTitle, student, issued: '2026-08-02', due, status: 'active', daysOverdue: 0 });
-  renderActiveLoans(); renderAdminCatalog(); renderIssueReturnForm(); renderDueSoon();
-  stamp('Issued', 'issue');
-  toast(`"${bookTitle}" issued to ${student}.`, 'sage');
+
+  if (!studentId || !bookId) {
+    toast('Select a student and a book first', 'crimson');
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE}/loans/issue`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        student_id: parseInt(studentId, 10),
+        book_id: parseInt(bookId, 10),
+        due_date: due
+      })
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.error || 'Could not issue book');
+    }
+
+    stamp('Issued', 'issue');
+    toast(`Book issued successfully!`, 'sage');
+    await loadAllFromDatabase();
+
+  } catch (err) {
+    console.error('Issue error:', err);
+    toast(err.message, 'crimson');
+  }
 }
 
-function returnBook(id) {
-  const l = loans.find(x => x.id === id);
-  if (!l) return;
-  const b = books.find(x => x.title === l.book);
-  if (b) b.available = Math.min(b.copies, b.available + 1);
-  loans = loans.filter(x => x.id !== id);
-  renderActiveLoans(); renderAdminCatalog(); renderIssueReturnForm(); renderDueSoon();
-  stamp('Returned', 'return');
-  toast(`"${l.book}" marked as returned.`, 'sage');
+async function returnBook(borrowId) {
+  try {
+    const response = await fetch(`${API_BASE}/loans/return/${borrowId}`, {
+      method: 'POST'
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.error || 'Could not return book');
+    }
+
+    stamp('Returned', 'return');
+    toast(result.message || 'Book returned successfully!', 'sage');
+    await loadAllFromDatabase();
+
+  } catch (err) {
+    console.error('Return error:', err);
+    toast(err.message, 'crimson');
+  }
 }
 
-function approveReservation(id) {
-  const r = reservations.find(x => x.id === id);
-  if (r) r.status = 'approved';
-  renderReservationsTable();
-  stamp('Approved', 'approve');
-  toast(`Reservation for "${r.book}" approved.`, 'sage');
+async function approveReservation(id) {
+  try {
+    const response = await fetch(`${API_BASE}/reservations/${id}/status`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'APPROVED' })
+    });
+
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Failed to approve');
+
+    stamp('Approved', 'approve');
+    toast('Reservation approved.', 'sage');
+    await loadAllFromDatabase();
+  } catch (err) {
+    toast(err.message, 'crimson');
+  }
 }
 
-function rejectReservation(id) {
-  const r = reservations.find(x => x.id === id);
-  if (r) r.status = 'rejected';
-  renderReservationsTable();
-  toast(`Reservation for "${r.book}" rejected.`, 'crimson');
+async function rejectReservation(id) {
+  try {
+    const response = await fetch(`${API_BASE}/reservations/${id}/status`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'REJECTED' })
+    });
+
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Failed to reject');
+
+    toast('Reservation rejected.', 'crimson');
+    await loadAllFromDatabase();
+  } catch (err) {
+    toast(err.message, 'crimson');
+  }
 }
 
-function markFinePaid(i) {
-  fines[i].status = 'paid';
-  renderFineTable();
-  stamp('Settled', 'fine');
-  toast(`Fine of ₹${fines[i].amount} marked as paid.`, 'sage');
+async function markFinePaid(fineId) {
+  try {
+    const response = await fetch(`${API_BASE}/fines/${fineId}/pay`, {
+      method: 'PUT'
+    });
+
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Failed to update fine');
+
+    stamp('Settled', 'fine');
+    toast('Fine marked as paid.', 'sage');
+    await loadAllFromDatabase();
+  } catch (err) {
+    toast(err.message, 'crimson');
+  }
 }
 
-let editingBookId = null;
 function openBookModal(id) {
-  editingBookId = id || null;
+  editingBookId = id ?? null;
+
   const overlay = document.getElementById('book-modal-overlay');
-  document.getElementById('book-modal-title').textContent = id ? 'Edit book' : 'Add new book';
-  if (id) {
-    const b = books.find(x => x.id === id);
-    document.getElementById('bf-title').value = b.title;
-    document.getElementById('bf-author').value = b.author;
-    document.getElementById('bf-category').value = b.category;
-    document.getElementById('bf-accession').value = b.accession;
-    document.getElementById('bf-copies').value = b.copies;
+  const isEditing = id !== null && id !== undefined;
+
+  document.getElementById('book-modal-title').textContent =
+    isEditing ? 'Edit book' : 'Add new book';
+
+  if (isEditing) {
+    const b = books.find(x => Number(x.id ?? x.book_id) === Number(id));
+
+    if (!b) {
+      toast('Book not found', 'crimson');
+      return;
+    }
+
+    document.getElementById('bf-title').value = b.title ?? '';
+    document.getElementById('bf-author').value = b.author_name ?? b.author ?? '';
+
+    const categorySelect = document.getElementById('bf-category');
+    if (b.category_id) {
+      categorySelect.value = String(b.category_id);
+    } else {
+      categorySelect.selectedIndex = 0;
+    }
+
+    document.getElementById('bf-accession').value = '';
+    document.getElementById('bf-copies').value = b.copies ?? 1;
+
   } else {
     document.getElementById('bf-title').value = '';
     document.getElementById('bf-author').value = '';
-    document.getElementById('bf-category').value = 'Computer Science';
+    document.getElementById('bf-category').selectedIndex = 0;
     document.getElementById('bf-accession').value = '';
     document.getElementById('bf-copies').value = 1;
   }
+
   overlay.classList.add('open');
 }
-function closeBookModal() { document.getElementById('book-modal-overlay').classList.remove('open'); }
 
-function saveBook() {
-  const title = document.getElementById('bf-title').value.trim();
-  const author = document.getElementById('bf-author').value.trim();
-  const category = document.getElementById('bf-category').value;
-  const accession = document.getElementById('bf-accession').value.trim() || 'ACC-' + Math.floor(1000+Math.random()*9000);
-  const copies = parseInt(document.getElementById('bf-copies').value) || 1;
-  if (!title || !author) { toast('Title and author are required', 'crimson'); return; }
-
-  if (editingBookId) {
-    const b = books.find(x => x.id === editingBookId);
-    Object.assign(b, { title, author, category, accession, copies });
-  } else {
-    books.push({ id: Date.now(), title, author, category, accession, copies, available: copies });
-  }
-  closeBookModal();
-  renderAdminCatalog(); renderStudentCatalog(); renderCatalogChips(); renderIssueReturnForm();
-  toast(`"${title}" saved to catalog.`, 'sage');
+function closeBookModal() {
+  document.getElementById('book-modal-overlay').classList.remove('open');
 }
 
-function deleteBook(id) {
-  const b = books.find(x => x.id === id);
-  books = books.filter(x => x.id !== id);
-  renderAdminCatalog(); renderStudentCatalog(); renderIssueReturnForm();
-  toast(`"${b.title}" removed from catalog.`, 'crimson');
+function openStudentModal() {
+  document.getElementById('sf-id').value = '';
+  document.getElementById('sf-name').value = '';
+  document.getElementById('sf-email').value = '';
+  document.getElementById('sf-phone').value = '';
+  document.getElementById('sf-dept').value = 'Computer Science';
+  document.getElementById('student-modal-overlay').classList.add('open');
+}
+
+function closeStudentModal() {
+  document.getElementById('student-modal-overlay').classList.remove('open');
+}
+
+async function saveStudent() {
+  const idVal = document.getElementById('sf-id').value.trim();
+  const name = document.getElementById('sf-name').value.trim();
+  const email = document.getElementById('sf-email').value.trim();
+  const phone = document.getElementById('sf-phone').value.trim();
+  const dept = document.getElementById('sf-dept').value.trim();
+
+  if (!name || !email) {
+    toast('Student Name and Email are required', 'crimson');
+    return;
+  }
+
+  const payload = {
+    name,
+    email,
+    phone: phone || null,
+    department: dept || 'Computer Science'
+  };
+
+  if (idVal) {
+    payload.student_id = parseInt(idVal, 10);
+  }
+
+  try {
+    const response = await fetch(`${API_BASE}/students`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Could not save student');
+
+    closeStudentModal();
+    toast(`Student "${name}" registered successfully.`, 'sage');
+    await loadAllFromDatabase();
+  } catch (err) {
+    console.error('Save student error:', err);
+    toast(err.message, 'crimson');
+  }
+}
+
+async function saveBook() {
+  const title = document.getElementById('bf-title').value.trim();
+  const author = document.getElementById('bf-author').value.trim();
+  const categoryId = Number(document.getElementById('bf-category').value);
+  const accession = document.getElementById('bf-accession').value.trim();
+  const copies = parseInt(document.getElementById('bf-copies').value, 10) || 1;
+
+  if (!title || !author) {
+    toast('Title and author are required', 'crimson');
+    return;
+  }
+
+  if (!Number.isInteger(categoryId) || categoryId < 1 || categoryId > 5) {
+    toast('Please select a valid category', 'crimson');
+    return;
+  }
+
+  if (copies < 1) {
+    toast('At least one copy is required', 'crimson');
+    return;
+  }
+
+  const existingBook = editingBookId
+    ? books.find(b => Number(b.id ?? b.book_id) === Number(editingBookId))
+    : null;
+
+  const payload = {
+    title,
+    author_name: author,
+    isbn: existingBook ? existingBook.isbn : `978-${Math.floor(1000000000 + Math.random() * 9000000000)}`,
+    publication_year: existingBook?.publicationYear || new Date().getFullYear(),
+    category_id: categoryId,
+    publisher_id: existingBook?.publisher_id || 1,
+    copies: existingBook ? 1 : copies
+  };
+
+  if (accession) {
+    payload.accession_number = parseInt(accession, 10);
+  }
+
+  if (existingBook) {
+    payload.book_id = existingBook.id;
+  }
+
+  try {
+    const response = await fetch(
+      existingBook ? `${API_BASE}/books/${existingBook.id}` : `${API_BASE}/books`,
+      {
+        method: existingBook ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.error || 'Could not save book');
+    }
+
+    closeBookModal();
+    await loadAllFromDatabase();
+
+    toast(`"${title}" saved to PostgreSQL.`, 'sage');
+  } catch (error) {
+    console.error('Saving book failed:', error);
+    toast(error.message || 'Could not save book. Check backend.', 'crimson');
+  }
+}
+
+async function deleteBook(id) {
+  const b = books.find(x => Number(x.id ?? x.book_id) === Number(id));
+  const bookTitle = b ? b.title : `Book #${id}`;
+
+  if (!confirm(`Are you sure you want to delete "${bookTitle}"?`)) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE}/books/${id}`, {
+      method: 'DELETE'
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.error || 'Could not delete book');
+    }
+
+    toast(`"${bookTitle}" deleted successfully.`, 'sage');
+    await loadAllFromDatabase();
+  } catch (error) {
+    console.error('Delete book error:', error);
+    toast(error.message || 'Could not delete book. Check backend logs.', 'crimson');
+  }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('global-search').addEventListener('input', (e) => {
+  const searchInput = document.getElementById('global-search');
+  if (!searchInput) return;
+
+  searchInput.addEventListener('input', e => {
     const q = e.target.value.toLowerCase();
-    const filtered = books.filter(b => b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q) || b.accession.toLowerCase().includes(q));
+
+    const filtered = books.filter(b =>
+      b.title.toLowerCase().includes(q) ||
+      b.author.toLowerCase().includes(q) ||
+      b.accession.toLowerCase().includes(q) ||
+      (b.isbn && b.isbn.toLowerCase().includes(q))
+    );
+
     const grid = document.getElementById('student-catalog-grid');
-    if (grid) {
-      grid.innerHTML = filtered.map(b => `
-        <div class="index-card" id="card-${b.id}">
-          <div class="index-card-inner">
-            <div class="card-face card-front" onclick="flipCard(${b.id})">
-              <div class="spine-swatch" style="background:${spineColor(b.id)}"></div>
-              <div class="cat">${b.category}</div>
-              <div class="title">${b.title}</div>
-              <div class="author">${b.author}</div>
-              <div class="meta-row"><span class="avail-badge ${b.available>0?'yes':'no'}">${b.available>0? b.available+' available':'all issued'}</span></div>
-            </div>
-            <div class="card-face card-back" onclick="flipCard(${b.id})">
-              <div class="accession">${b.accession}</div>
-              <dl><dt>Author</dt><dd>${b.author}</dd><dt>Category</dt><dd>${b.category}</dd></dl>
-              <div class="back-actions"><button class="btn btn-sm btn-sage" onclick="event.stopPropagation(); issueOrReserve(${b.id})">${b.available>0?'Issue to me':'Reserve'}</button></div>
+    if (!grid) return;
+
+    grid.innerHTML = filtered.map(b => `
+      <div class="index-card" id="card-${b.id}">
+        <div class="index-card-inner">
+          <div class="card-face card-front" onclick="flipCard(${b.id})">
+            <div class="spine-swatch" style="background:${spineColor(b.id)}"></div>
+            <div class="cat">${b.category}</div>
+            <div class="title">${b.title}</div>
+            <div class="author">${b.author}</div>
+            <div class="meta-row">
+              <span class="avail-badge ${b.available > 0 ? 'yes' : 'no'}">${b.available > 0 ? b.available + ' available' : 'all issued'}</span>
             </div>
           </div>
-        </div>`).join('');
-    }
+          <div class="card-face card-back" onclick="flipCard(${b.id})">
+            <div class="accession">${b.accession}</div>
+            <dl>
+              <dt>Author</dt><dd>${b.author}</dd>
+              <dt>Category</dt><dd>${b.category}</dd>
+            </dl>
+            <div class="back-actions">
+              <button class="btn btn-sm btn-sage" onclick="event.stopPropagation(); issueOrReserve(${b.id})">${b.available > 0 ? 'Issue to me' : 'Reserve'}</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `).join('');
   });
 });
 
@@ -509,65 +1026,128 @@ let chartCirc, chartCat, chartStatus, chartMonthly;
 
 function renderDashboardChart() {
   const ctx = document.getElementById('chartCirculation');
-  if (!ctx) return;
+  if (!ctx || typeof Chart === 'undefined') return;
+
   if (chartCirc) chartCirc.destroy();
+
   chartCirc = new Chart(ctx, {
     type: 'line',
     data: {
-      labels: ['W1','W2','W3','W4','W5','W6','W7','W8'],
+      labels: ['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7', 'W8'],
       datasets: [{
         label: 'Issues',
-        data: [58,64,49,72,80,66,91,84],
+        data: [58, 64, 49, 72, 80, 66, 91, 84],
         borderColor: '#B8873D',
         backgroundColor: 'rgba(184,135,61,0.12)',
-        tension: 0.35, fill: true, pointRadius: 3,
+        tension: 0.35,
+        fill: true,
+        pointRadius: 3
       }]
     },
     options: {
-      responsive: true, maintainAspectRatio: false,
+      responsive: true,
+      maintainAspectRatio: false,
       plugins: { legend: { display: false } },
-      scales: { y: { grid: { color: 'rgba(28,43,57,0.06)' } }, x: { grid: { display: false } } }
+      scales: {
+        y: { grid: { color: 'rgba(28,43,57,0.06)' } },
+        x: { grid: { display: false } }
+      }
     }
   });
 }
 
 function renderCharts() {
+  if (typeof Chart === 'undefined') return;
+
   const catCtx = document.getElementById('chartCategory');
-  if (chartCat) chartCat.destroy();
-  chartCat = new Chart(catCtx, {
-    type: 'bar',
-    data: {
-      labels: ['Computer Science','Mathematics','Engineering','Business','Literature'],
-      datasets: [{ data: [412, 188, 96, 74, 61], backgroundColor: ['#B8873D','#4E6B52','#3A5A78','#9B3E3E','#7A5C3E'], borderRadius: 4 }]
-    },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
-      scales: { y: { grid: { color: 'rgba(28,43,57,0.06)' } }, x: { grid: { display: false } } } }
-  });
+  if (catCtx) {
+    if (chartCat) chartCat.destroy();
+
+    chartCat = new Chart(catCtx, {
+      type: 'bar',
+      data: {
+        labels: ['Programming', 'Database', 'Artificial Intelligence', 'Networks', 'Software Eng.'],
+        datasets: [{
+          data: [412, 188, 96, 74, 61],
+          backgroundColor: ['#B8873D', '#4E6B52', '#3A5A78', '#9B3E3E', '#7A5C3E'],
+          borderRadius: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { grid: { color: 'rgba(28,43,57,0.06)' } },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+  }
 
   const statusCtx = document.getElementById('chartStatus');
-  if (chartStatus) chartStatus.destroy();
-  chartStatus = new Chart(statusCtx, {
-    type: 'doughnut',
-    data: {
-      labels: ['On shelf','Issued','Overdue','Reserved'],
-      datasets: [{ data: [742, 325, 17, 32], backgroundColor: ['#4E6B52','#B8873D','#9B3E3E','#3A5A78'] }]
-    },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 8, font: { size: 10.5 } } } } }
-  });
+  if (statusCtx) {
+    if (chartStatus) chartStatus.destroy();
+
+    chartStatus = new Chart(statusCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Available', 'Issued', 'Overdue', 'Reserved'],
+        datasets: [{
+          data: [15, 5, 2, 2],
+          backgroundColor: ['#4E6B52', '#B8873D', '#9B3E3E', '#3A5A78']
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { boxWidth: 8, font: { size: 10.5 } }
+          }
+        }
+      }
+    });
+  }
 
   const monthCtx = document.getElementById('chartMonthly');
-  if (chartMonthly) chartMonthly.destroy();
-  chartMonthly = new Chart(monthCtx, {
-    type: 'bar',
-    data: {
-      labels: ['Mar','Apr','May','Jun','Jul','Aug'],
-      datasets: [
-        { label: 'Issued', data: [210,240,190,260,300,120], backgroundColor: '#B8873D', borderRadius: 3 },
-        { label: 'Returned', data: [198,225,205,240,270,60], backgroundColor: '#4E6B52', borderRadius: 3 },
-      ]
-    },
-    options: { responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { position: 'bottom', labels: { boxWidth: 8, font: { size: 10.5 } } } },
-      scales: { y: { grid: { color: 'rgba(28,43,57,0.06)' } }, x: { grid: { display: false } } } }
-  });
+  if (monthCtx) {
+    if (chartMonthly) chartMonthly.destroy();
+
+    chartMonthly = new Chart(monthCtx, {
+      type: 'bar',
+      data: {
+        labels: ['Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'],
+        datasets: [
+          {
+            label: 'Issued',
+            data: [210, 240, 190, 260, 300, 120],
+            backgroundColor: '#B8873D',
+            borderRadius: 3
+          },
+          {
+            label: 'Returned',
+            data: [198, 225, 205, 240, 270, 60],
+            backgroundColor: '#4E6B52',
+            borderRadius: 3
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { boxWidth: 8, font: { size: 10.5 } }
+          }
+        },
+        scales: {
+          y: { grid: { color: 'rgba(28,43,57,0.06)' } },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+  }
 }

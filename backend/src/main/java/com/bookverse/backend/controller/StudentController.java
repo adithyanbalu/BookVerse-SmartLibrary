@@ -143,6 +143,55 @@ public class StudentController {
         }
     }
     
+@DeleteMapping("/{id}")
+@Transactional
+public ResponseEntity<?> deleteStudent(@PathVariable int id) {
+    try {
+        Integer exists = jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM student WHERE student_id = ?",
+            Integer.class, id
+        );
+
+        if (exists == null || exists == 0) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("error", "Student not found."));
+        }
+
+        Integer borrowCount = jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM borrow_transaction WHERE student_id = ?",
+            Integer.class, id
+        );
+
+        Integer reservationCount = jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM reservation WHERE student_id = ?",
+            Integer.class, id
+        );
+
+        if ((borrowCount != null && borrowCount > 0) ||
+            (reservationCount != null && reservationCount > 0)) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of(
+                    "error",
+                    "Cannot delete this student because borrowing history or reservations exist."
+                ));
+        }
+
+        jdbcTemplate.update(
+            "DELETE FROM student WHERE student_id = ?", id
+        );
+
+        return ResponseEntity.ok(Map.of(
+            "message", "Student deleted successfully.",
+            "student_id", id
+        ));
+
+    } catch (Exception e) {
+        e.printStackTrace();
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+            .body(Map.of("error", "Could not delete student."));
+    }
+}
+
     @PostMapping("/register")
     @Transactional
     public ResponseEntity<?> registerStudent(

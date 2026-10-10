@@ -485,6 +485,7 @@ function emptyRow(colspan) {
   return `<tr><td colspan="${colspan}"><div class="empty-state"><p>Nothing here yet.</p></div></td></tr>`;
 }
 
+
 function renderStudentTable() {
   const el = document.getElementById('student-table');
   if (!el) return;
@@ -498,11 +499,41 @@ function renderStudentTable() {
       <td>${s.fines > 0 ? '₹' + s.fines : '—'}</td>
       <td><span class="pill pill-sage">${s.status}</span></td>
       <td class="row-actions">
-        <button class="btn btn-sm" onclick="toast('Student ID ${s.id}: ${s.email}', 'ink')">View</button>
+        <button class="btn btn-sm"
+          onclick="viewStudentDetails(${s.id})">
+          View Details
+        </button>
+        <button class="btn btn-sm"
+          onclick="deleteStudent(${s.id})">
+          Delete
+        </button>
       </td>
     </tr>
   `).join('') || emptyRow(7);
 }
+
+function viewStudentDetails(studentId) {
+  const student = students.find(s => Number(s.id) === Number(studentId));
+
+  if (!student) {
+    toast('Student not found.', 'crimson');
+    return;
+  }
+
+  alert(
+    'STUDENT DETAILS\n\n' +
+    'Student ID: ' + student.id + '\n' +
+    'Roll Number: ' + student.roll + '\n' +
+    'Name: ' + student.name + '\n' +
+    'Email: ' + student.email + '\n' +
+    'Phone: ' + student.phone + '\n' +
+    'Department: ' + student.program + '\n' +
+    'Active Loans: ' + student.loans + '\n' +
+    'Total Fines: ₹' + student.fines + '\n' +
+    'Status: ' + student.status
+  );
+}
+
 
 function renderIssueReturnForm() {
   const elStudent = document.getElementById('issue-student');
@@ -1423,6 +1454,52 @@ async function submitPasswordSetup(e) {
       'crimson'
     );
   }
-
-  return false;
 }
+async function deleteStudent(studentId) {
+  const student = students.find(
+    s => Number(s.id) === Number(studentId)
+  );
+
+  if (!student) {
+    toast('Student not found.', 'crimson');
+    return;
+  }
+
+  const confirmed = confirm(
+    'Are you sure you want to delete ' +
+    student.name + ' (ID: ' + student.id + ')?'
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `${API_BASE}/students/${studentId}`,
+      { method: 'DELETE' }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      toast(
+        result.error || 'Could not delete student.',
+        'crimson'
+      );
+      return;
+    }
+
+    toast('Student deleted successfully.', 'ink');
+    await loadStudentsFromDatabase();
+
+  } catch (error) {
+    console.error('Delete student error:', error);
+    toast(
+      'Could not connect to the backend.',
+      'crimson'
+    );
+  }
+   return false;
+}
+
